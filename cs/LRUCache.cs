@@ -39,8 +39,9 @@ namespace DataStructures
 
             public bool Lock(out bool lockTaken)
             {
-                // while locked, spin!
-                while (Interlocked.CompareExchange(ref _lock, 1, 0) != 0) Thread.SpinWait(4);
+                // while locked, spin (it will eventually yield)
+                SpinWait sw = new SpinWait();
+                while (Interlocked.CompareExchange(ref _lock, 1, 0) != 0) sw.SpinOnce();
                 return (lockTaken = true);
             }
 
@@ -48,7 +49,7 @@ namespace DataStructures
             {
                 // try for immediate success
                 if (Interlocked.CompareExchange(ref _lock, 1, 0) == 0) return (lockTaken = true);
-                // otherwise spin a bit
+                // otherwise spin a bit (this is like one SpinOnce)
                 Thread.SpinWait(4);
                 // and try one more time
                 return (lockTaken = (Interlocked.CompareExchange(ref _lock, 1, 0) == 0));
